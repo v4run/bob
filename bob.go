@@ -29,7 +29,7 @@ func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: bob [options]\n")
 		fmt.Fprintf(os.Stderr, "options:\n")
-		fmt.Fprintf(os.Stderr, "\t-d, -directory Directory   The directory to watch.\n")
+		fmt.Fprintf(os.Stderr, "\t-d, -dir Directory   The directory to watch.\n")
 		fmt.Fprintf(os.Stderr, "\t-v, -version   Version     Prints the version.\n")
 		fmt.Fprintf(os.Stderr, "\t-h, -help      Help        Show this help.\n")
 	}
