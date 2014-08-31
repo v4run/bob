@@ -1,4 +1,4 @@
-package bLogger
+package b_logger
 
 import (
 	"log"
@@ -17,7 +17,7 @@ var (
 	name_c  = "\033[38;5;157m"
 	flags_c = "\033[38;5;241m"
 	reset_c = "\033[0m"
-	bl      = bLogger{log.New(os.Stdout, "[" + name_c+ "bob" + reset_c + "] "+flags_c, log.LstdFlags)}
+	bl      = bLogger{log.New(os.Stdout, "["+name_c+"bob"+reset_c+"] "+flags_c, log.LstdFlags)}
 )
 
 func Logger() bLogger {
@@ -25,7 +25,7 @@ func Logger() bLogger {
 }
 
 func (b bLogger) printMessage(level string, args ...string) {
-	message := strings.Join(args, " ");
+	message := strings.Join(args, " ")
 	b.Printf("%s%s%s%s", reset_c, level, message, reset_c)
 }
 

@@ -1,13 +1,13 @@
 package watcher
 
 import (
-	"github.com/v4run/bob/bLogger"
+	"github.com/v4run/bob/b_logger"
 	"github.com/v4run/bob/builder"
 	"github.com/v4run/bob/runner"
 	"os"
 	"path/filepath"
-	"time"
 	"strings"
+	"time"
 )
 
 const (
@@ -39,18 +39,16 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 		return err
 	}
 
-	if strings.HasPrefix(path, ".") {  // skip directories like .git, .idea etc.
+	if strings.HasPrefix(path, ".") { // skip directories like .git, .idea etc.
 		return filepath.SkipDir
 	}
 
 	if filepath.Ext(path) == ".go" {
 		if info.ModTime().After(w.b.LastBuild()) {
-			bLogger.Logger().Info(path, "modified. Rebuilding.")
-			out, er := w.b.Build()
-			bLogger.Logger().Info("Build complete.")
-			if er != nil {
-				bLogger.Logger().Error(string(out))
-			} else {
+			p, _ := filepath.Rel(w.dir, path)
+			b_logger.Logger().Info("[", w.b.AppName(), "]", p, "modified.")
+			okay := w.b.Build()
+			if okay {
 				re := w.r.Run()
 				return re
 			}
@@ -60,12 +58,16 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 }
 
 func (w *Watcher) Watch() error {
-	out, er := w.b.Build() // Do a first build.
-	if er != nil {
-		bLogger.Logger().Error(string(out))
-		return er
+	b_logger.Logger().Info("Started watching", w.dir)
+
+	// Do a first build
+	okay := w.b.Build()
+	if okay {
+		// Do a first run.
+		if re := w.r.Run(); re != nil {
+			b_logger.Logger().Error(re.Error())
+		}
 	}
-	bLogger.Logger().Info("Started watching", w.dir)
 	stopWatch := make(chan error)
 	go func() {
 		for {

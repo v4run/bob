@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/v4run/bob/bLogger"
+	"flag"
+	"fmt"
+	"github.com/v4run/bob/b_logger"
+	"github.com/v4run/bob/graceful"
 	"github.com/v4run/bob/watcher"
 	"os"
 	"path/filepath"
-	"flag"
-	"fmt"
-	"github.com/v4run/bob/graceful"
+	"strings"
 )
 
 const (
@@ -15,10 +16,9 @@ const (
 )
 
 var (
-	path string
+	path    string
 	version bool
-	help bool
-	l = bLogger.Logger()
+	help    bool
 )
 
 func init() {
@@ -48,8 +48,15 @@ func parseFlags() {
 		os.Exit(0)
 	}
 
-	if path == "" {
+	if strings.TrimSpace(path) == "" {
 		dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
+		path = dir
+	} else {
+		dir, err := filepath.Abs(path)
+		if err != nil {
+			b_logger.Logger().Error("Invalid directory,", path)
+			os.Exit(1)
+		}
 		path = dir
 	}
 }
@@ -57,10 +64,9 @@ func parseFlags() {
 func main() {
 	go graceful.ActivateGracefulShutdown()
 	parseFlags()
-	dir, _ := filepath.Abs(filepath.Dir(os.Args[0]))
-	w := watcher.NewWatcher(dir)
+	w := watcher.NewWatcher(path)
 	if err := w.Watch(); err != nil {
-		l.Error(err.Error())
+		b_logger.Logger().Error(err.Error())
 		os.Exit(1)
 	}
 }

@@ -1,10 +1,10 @@
 package runner
 
 import (
-	"os/exec"
-	"time"
-	"path/filepath"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"time"
 )
 
 /**
@@ -13,7 +13,7 @@ import (
  * command: run command
  */
 type Runner struct {
-	proc string
+	proc    string
 	command *exec.Cmd
 }
 
@@ -36,7 +36,7 @@ func (r *Runner) Run() error {
 	return r.command.Start()
 }
 
-func (r *Runner) terminateIfRunning() (error) {
+func (r *Runner) terminateIfRunning() error {
 	if r.command == nil {
 		return nil
 	}
