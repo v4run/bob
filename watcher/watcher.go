@@ -39,7 +39,7 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 		return err
 	}
 
-	if strings.HasPrefix(path, ".") { // skip directories like .git, .idea etc.
+	if strings.HasPrefix(filepath.Base(path), ".") { // skip directories like .git, .idea etc.
 		return filepath.SkipDir
 	}
 
@@ -72,7 +72,7 @@ func (w *Watcher) Watch() error {
 	go func() {
 		for {
 			err := filepath.Walk(w.dir, w.watchFunc)
-			if err != nil {
+			if err != nil && err != filepath.SkipDir {
 				stopWatch <- err
 			}
 			time.Sleep(SLEEP_TIME * time.Millisecond)
