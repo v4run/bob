@@ -16,10 +16,12 @@ Usage
 With `GOPATH/bin` in `PATH`,
 
 ```
-bob [options]
+Usage: bob [options]
 options:
-	-d, -dir       Directory   The directory to watch.
-	-v, -version   Version     Prints the version.
-	-h, -help      Help        Show this help.
+	-p, -path      Directory              The directory to watch.
+	-n, -name      Name                   The name for binary file.
+	-e, -env       Environment file path  Path to file containing environment variables to be set for the service.
+	-v, -version   Version                Prints the version.
+	-h, -help      Help                   Show this help.
 
 ```
