@@ -51,7 +51,7 @@ func (b *Builder) Build() bool {
 	b.SetLastBuild(time.Now())
 	if err != nil {
 		b_logger.Logger().Error("[", b.appName, "] build failed.")
-		b_logger.Logger().Error(string(out))
+		b_logger.Logger().Error(string(out), err.Error())
 		return false
 	}
 	b_logger.Logger().Info("[", b.appName, "] build successful.")

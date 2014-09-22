@@ -18,7 +18,7 @@ type Runner struct {
 }
 
 /**
- * Returns a new runner wi
+ * Returns a new runner.
  */
 func NewRunner(name, dir string) Runner {
 	r := Runner{proc: filepath.Join(dir, name)}

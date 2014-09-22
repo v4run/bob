@@ -21,17 +21,19 @@ const (
  * dir: directory to watch
  */
 type Watcher struct {
-	b   builder.Builder
-	r   runner.Runner
-	dir string
+	b      builder.Builder
+	r      runner.Runner
+	dir   string
 }
 
 /**
  * Returns a new watcher.
  */
-func NewWatcher(dir string) Watcher {
-	appName := filepath.Base(dir)
-	return Watcher{dir: dir, b: builder.NewBuilder(appName, dir), r: runner.NewRunner(appName, dir)}
+func NewWatcher(path, appName string) Watcher {
+	if appName == "" {
+		appName = filepath.Base(path)
+	}
+	return Watcher{dir: path, b: builder.NewBuilder(appName, path), r: runner.NewRunner(appName, path)}
 }
 
 func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
@@ -74,6 +76,7 @@ func (w *Watcher) Watch() error {
 			err := filepath.Walk(w.dir, w.watchFunc)
 			if err != nil && err != filepath.SkipDir {
 				stopWatch <- err
+				break
 			}
 			time.Sleep(SLEEP_TIME * time.Millisecond)
 		}
