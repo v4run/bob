@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"io/ioutil"
-	"log"
 	"strings"
 )
 
