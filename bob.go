@@ -92,8 +92,10 @@ func setEnvs(path string) {
 	} else {
 		values := strings.Split(string(contents), "\n")
 		for _, value := range values {
-			envVar := strings.Split(value, "=")
-			os.Setenv(envVar[0], envVar[1])
+			if strings.Contains(value, "=") {
+				envVar := strings.Split(value, "=")
+				os.Setenv(envVar[0], envVar[1])
+			}
 		}
 
 	}
