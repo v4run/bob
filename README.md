@@ -7,7 +7,7 @@ Getting
 ===
 
 ```
-git clone git@github.com:v4run/bob.git
+go get github.com/v4run/bob
 ```
 
 Usage
