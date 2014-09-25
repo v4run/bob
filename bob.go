@@ -71,11 +71,11 @@ func validateFlags() {
 	} else {
 		dir, err := os.Stat(path)
 		if err != nil {
-			b_logger.Logger().Error("Cannot find path,", path)
+			b_logger.Error().Message("Cannot find path,", b_logger.FormattedMessage(path)).Log()
 			os.Exit(1)
 		}
 		if !dir.IsDir() {
-			b_logger.Logger().Error(fmt.Sprintf("Invalid path, %s. Path must be directory.", path))
+			b_logger.Error().Message(fmt.Sprintf("Invalid path, %s. Path must be directory.", b_logger.FormattedMessage(path))).Log()
 			os.Exit(1)
 		}
 		path, _ = filepath.Abs(path)
@@ -88,8 +88,10 @@ func validateFlags() {
 func setEnvs(path string) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		b_logger.Logger().Warn("Configuration file path provided is invalid,", path)
+		b_logger.Warn().Message("Configuration file path provided is invalid,", b_logger.FormattedMessage(path)).Log()
 	} else {
+		path, _ = filepath.Abs(path)
+		b_logger.Info().Command("exporting").Message(b_logger.FormattedMessage(path)).Log()
 		values := strings.Split(string(contents), "\n")
 		for _, value := range values {
 			if strings.Contains(value, "=") {
@@ -109,7 +111,7 @@ func main() {
 	}
 	w := watcher.NewWatcher(path, name)
 	if err := w.Watch(); err != nil {
-		b_logger.Logger().Error(err.Error())
+		b_logger.Error().Message(err.Error()).Log()
 		os.Exit(1)
 	}
 }

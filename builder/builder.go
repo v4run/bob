@@ -44,16 +44,16 @@ func (b *Builder) AppName() string {
 }
 
 func (b *Builder) Build() bool {
-	b_logger.Logger().Info("[", b.appName, "] build started.")
+	b_logger.Info().Command("build").Message("started.").Log()
 	command := exec.Command("go", "build", "-o", b.appName)
 	command.Dir = b.dir
 	out, err := command.CombinedOutput()
 	b.SetLastBuild(time.Now())
 	if err != nil {
-		b_logger.Logger().Error("[", b.appName, "] build failed.")
-		b_logger.Logger().Error(string(out), err.Error())
+		b_logger.Error().Command("build").Message("failed.").Log()
+		b_logger.Error().Message(string(out), err.Error()).Log()
 		return false
 	}
-	b_logger.Logger().Info("[", b.appName, "] build successful.")
+	b_logger.Info().Command("build").Message("successful.").Log()
 	return true
 }

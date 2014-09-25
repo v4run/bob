@@ -48,7 +48,7 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 	if filepath.Ext(path) == ".go" {
 		if info.ModTime().After(w.b.LastBuild()) {
 			p, _ := filepath.Rel(w.dir, path)
-			b_logger.Logger().Info("[", w.b.AppName(), "]", p, "modified.")
+			b_logger.Info().Command("modified").Message(b_logger.FormattedMessage(p)).Log()
 			okay := w.b.Build()
 			if okay {
 				re := w.r.Run()
@@ -60,14 +60,14 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 }
 
 func (w *Watcher) Watch() error {
-	b_logger.Logger().Info("Started watching", w.dir)
+	b_logger.Info().Command("watching").Message(b_logger.FormattedMessage(w.dir)).Log()
 
 	// Do a first build
 	okay := w.b.Build()
 	if okay {
 		// Do a first run.
 		if re := w.r.Run(); re != nil {
-			b_logger.Logger().Error(re.Error())
+			b_logger.Error().Message(re.Error())
 		}
 	}
 	stopWatch := make(chan error)
