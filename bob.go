@@ -9,12 +9,11 @@ import (
     "io/ioutil"
     "os"
     "path/filepath"
-	"io/ioutil"
     "strings"
 )
 
 const (
-    VERSION = "1.0.0"
+    VERSION = "1.0.1"
 )
 
 var (
@@ -65,7 +64,6 @@ func parseFlags() {
 /**
  * Validate the flag values.
  */
-
 func validateFlags() {
     if path == "" {
         dir, _ := os.Getwd() // Get the current working directory if no path is specified explicitly
@@ -101,7 +99,6 @@ func setEnvs(path string) {
                 os.Setenv(envVar[0], envVar[1])
             }
         }
-
     }
 }
 
