@@ -56,7 +56,10 @@ func (r *Runner) terminateIfRunning() error {
 		<-done
 	case err := <-done:
 		if err != nil {
-			return err
+			_, ok := err.(*exec.ExitError)
+			if !ok {
+				return err
+			}
 		}
 	}
 	r.command = nil
