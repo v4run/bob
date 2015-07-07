@@ -22,19 +22,23 @@ const (
  * dir : directory to watch
  */
 type Watcher struct {
-	b   builder.Builder
-	r   runner.Runner
-	dir string
+	b         builder.Builder
+	r         runner.Runner
+	dir       string
+	buildOnly bool
 }
 
 /**
  * Returns a new watcher.
  */
-func NewWatcher(path, appName string) Watcher {
+func NewWatcher(path, appName string, buildOnly bool) Watcher {
 	if appName == "" {
 		appName = filepath.Base(path)
 	}
-	return Watcher{dir: path, b: builder.NewBuilder(appName, path), r: runner.NewRunner(appName, path)}
+	if buildOnly {
+		return Watcher{dir: path, b: builder.NewBuilder(appName, path), buildOnly: buildOnly}
+	}
+	return Watcher{dir: path, b: builder.NewBuilder(appName, path), r: runner.NewRunner(appName, path), buildOnly: buildOnly}
 }
 
 /**
@@ -60,7 +64,7 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 			p, _ := filepath.Rel(w.dir, path)
 			b_logger.Info().Command("modified").Message(b_logger.FormattedMessage(p)).Log()
 			okay := w.b.Build()
-			if okay {
+			if okay && !w.buildOnly {
 				re := w.r.Run()
 				return re
 			}
@@ -78,7 +82,7 @@ func (w *Watcher) Watch() error {
 
 	// Do a first build
 	okay := w.b.Build()
-	if okay {
+	if okay && !w.buildOnly {
 		// Do a first run.
 		if re := w.r.Run(); re != nil {
 			b_logger.Error().Message(re.Error()).Log()

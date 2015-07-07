@@ -23,6 +23,7 @@ var (
 	name        string
 	version     bool
 	help        bool
+	buildOnly   bool
 )
 
 func init() {
@@ -32,6 +33,8 @@ func init() {
 	flag.StringVar(&name, "name", "", "")
 	flag.StringVar(&envFilePath, "e", "", "")
 	flag.StringVar(&envFilePath, "env", "", "")
+	flag.BoolVar(&buildOnly, "b", false, "")
+	flag.BoolVar(&buildOnly, "buildonly", false, "")
 	flag.BoolVar(&version, "v", false, "")
 	flag.BoolVar(&version, "version", false, "")
 	flag.BoolVar(&help, "h", false, "")
@@ -109,7 +112,7 @@ func main() {
 	if envFilePath != "" {
 		setEnvs(envFilePath)
 	}
-	w := watcher.NewWatcher(path, name)
+	w := watcher.NewWatcher(path, name, buildOnly)
 	if err := w.Watch(); err != nil {
 		b_logger.Error().Message(err.Error()).Log()
 		os.Exit(1)
