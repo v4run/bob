@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/v4run/bob/b_logger"
+	"github.com/v4run/bob/blogger"
 )
 
 /**
@@ -16,7 +16,7 @@ func ActivateGracefulShutdown() {
 	signal.Notify(signalChan, os.Interrupt)
 	for sig := range signalChan {
 		if sig == syscall.SIGINT {
-			b_logger.Warn().Command("interrupt").Message("Exiting.").Log()
+			blogger.Warn().Command("interrupt").Message("Exiting.").Log()
 			os.Exit(0)
 		}
 	}

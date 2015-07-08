@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/v4run/bob/b_logger"
+	"github.com/v4run/bob/blogger"
 )
 
 /**
@@ -45,16 +45,16 @@ func (b *Builder) AppName() string {
 }
 
 func (b *Builder) Build() bool {
-	b_logger.Info().Command("build").Message("Started.").Log()
+	blogger.Info().Command("build").Message("Started.").Log()
 	command := exec.Command("go", "build", "-o", b.appName)
 	command.Dir = b.dir
 	out, err := command.CombinedOutput()
 	b.SetLastBuild(time.Now())
 	if err != nil {
-		b_logger.Error().Command("build").Message("Failed.").Log()
-		b_logger.Error().Message(string(out), err.Error()).Log()
+		blogger.Error().Command("build").Message("Failed.").Log()
+		blogger.Error().Message(string(out), err.Error()).Log()
 		return false
 	}
-	b_logger.Info().Command("build").Message("Successful.").Log()
+	blogger.Info().Command("build").Message("Successful.").Log()
 	return true
 }

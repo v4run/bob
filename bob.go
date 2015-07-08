@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/v4run/bob/b_logger"
+	"github.com/v4run/bob/blogger"
 	"github.com/v4run/bob/graceful"
 	"github.com/v4run/bob/watcher"
 )
@@ -24,6 +24,7 @@ var (
 	version     bool
 	help        bool
 	buildOnly   bool
+	commands    string
 )
 
 func init() {
@@ -33,6 +34,8 @@ func init() {
 	flag.StringVar(&name, "name", "", "")
 	flag.StringVar(&envFilePath, "e", "", "")
 	flag.StringVar(&envFilePath, "env", "", "")
+	flag.StringVar(&commands, "c", "", "")
+	flag.StringVar(&commands, "commands", "", "")
 	flag.BoolVar(&buildOnly, "b", false, "")
 	flag.BoolVar(&buildOnly, "buildonly", false, "")
 	flag.BoolVar(&version, "v", false, "")
@@ -42,11 +45,13 @@ func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: bob [options]\n")
 		fmt.Fprintf(os.Stderr, "options:\n")
-		fmt.Fprintf(os.Stderr, "\t-p, -path      Directory              The directory to watch.\n")
-		fmt.Fprintf(os.Stderr, "\t-n, -name      Name                   The name for binary file.\n")
-		fmt.Fprintf(os.Stderr, "\t-e, -env       Environment file path  Path to file containing environment variables to be set for the service.\n")
-		fmt.Fprintf(os.Stderr, "\t-v, -version   Version                Prints the version.\n")
-		fmt.Fprintf(os.Stderr, "\t-h, -help      Help                   Show this help.\n")
+		fmt.Fprintf(os.Stderr, "\t-p, -path      Directory                The directory to watch.\n")
+		fmt.Fprintf(os.Stderr, "\t-n, -name      Name                     The name for binary file.\n")
+		fmt.Fprintf(os.Stderr, "\t-e, -env       Environment file path    Path to file containing environment variables to be set for the service.\n")
+		fmt.Fprintf(os.Stderr, "\t-b, -buildonly  Build only mode         Just do a build when a change is detected.\n")
+		fmt.Fprintf(os.Stderr, "\t-c, -commands   Custom commands to run  Run custom command after build.\n")
+		fmt.Fprintf(os.Stderr, "\t-v, -version   Version                  Prints the version.\n")
+		fmt.Fprintf(os.Stderr, "\t-h, -help      Help                     Show this help.\n")
 	}
 }
 
@@ -75,11 +80,11 @@ func validateFlags() {
 	} else {
 		dir, err := os.Stat(path)
 		if err != nil {
-			b_logger.Error().Message("Cannot find path,", b_logger.FormattedMessage(path)).Log()
+			blogger.Error().Message("Cannot find path,", blogger.FormattedMessage(path)).Log()
 			os.Exit(1)
 		}
 		if !dir.IsDir() {
-			b_logger.Error().Message(fmt.Sprintf("Invalid path, %s. Path must be directory.", b_logger.FormattedMessage(path))).Log()
+			blogger.Error().Message(fmt.Sprintf("Invalid path, %s. Path must be directory.", blogger.FormattedMessage(path))).Log()
 			os.Exit(1)
 		}
 		path, _ = filepath.Abs(path)
@@ -92,10 +97,10 @@ func validateFlags() {
 func setEnvs(path string) {
 	contents, err := ioutil.ReadFile(path)
 	if err != nil {
-		b_logger.Warn().Message("Configuration file path provided is invalid,", b_logger.FormattedMessage(path)).Log()
+		blogger.Warn().Message("Configuration file path provided is invalid,", blogger.FormattedMessage(path)).Log()
 	} else {
 		path, _ = filepath.Abs(path)
-		b_logger.Info().Command("exporting").Message(b_logger.FormattedMessage(path)).Log()
+		blogger.Info().Command("exporting").Message(blogger.FormattedMessage(path)).Log()
 		values := strings.Split(string(contents), "\n")
 		for _, value := range values {
 			if strings.Contains(value, "=") {
@@ -112,9 +117,9 @@ func main() {
 	if envFilePath != "" {
 		setEnvs(envFilePath)
 	}
-	w := watcher.NewWatcher(path, name, buildOnly)
+	w := watcher.NewWatcher(path, name, commands, buildOnly)
 	if err := w.Watch(); err != nil {
-		b_logger.Error().Message(err.Error()).Log()
+		blogger.Error().Message(err.Error()).Log()
 		os.Exit(1)
 	}
 }

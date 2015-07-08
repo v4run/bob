@@ -1,4 +1,4 @@
-package b_logger
+package blogger
 
 import (
 	"log"

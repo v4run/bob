@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/v4run/bob/b_logger"
+	"github.com/v4run/bob/blogger"
 	"github.com/v4run/bob/builder"
 	"github.com/v4run/bob/runner"
 )
@@ -31,14 +31,11 @@ type Watcher struct {
 /**
  * Returns a new watcher.
  */
-func NewWatcher(path, appName string, buildOnly bool) Watcher {
+func NewWatcher(path, appName, commands string, buildOnly bool) Watcher {
 	if appName == "" {
 		appName = filepath.Base(path)
 	}
-	if buildOnly {
-		return Watcher{dir: path, b: builder.NewBuilder(appName, path), buildOnly: buildOnly}
-	}
-	return Watcher{dir: path, b: builder.NewBuilder(appName, path), r: runner.NewRunner(appName, path), buildOnly: buildOnly}
+	return Watcher{dir: path, b: builder.NewBuilder(appName, path), r: runner.NewRunner(appName, path, commands), buildOnly: buildOnly}
 }
 
 /**
@@ -62,11 +59,17 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
 	if filepath.Ext(path) == ".go" {
 		if info.ModTime().After(w.b.LastBuild()) {
 			p, _ := filepath.Rel(w.dir, path)
-			b_logger.Info().Command("modified").Message(b_logger.FormattedMessage(p)).Log()
+			blogger.Info().Command("modified").Message(blogger.FormattedMessage(p)).Log()
 			okay := w.b.Build()
-			if okay && !w.buildOnly {
-				re := w.r.Run()
-				return re
+			if okay {
+				if !w.buildOnly {
+					re := w.r.Run()
+					return re
+				}
+				ce := w.r.RunCustom()
+				if ce != nil {
+					blogger.Error().Message(ce.Error()).Log()
+				}
 			}
 		}
 	}
@@ -78,14 +81,20 @@ func (w *Watcher) watchFunc(path string, info os.FileInfo, err error) error {
  * An initial build and run is performed before watching begins. Returns error if any.
  */
 func (w *Watcher) Watch() error {
-	b_logger.Info().Command("watching").Message(b_logger.FormattedMessage(w.dir)).Log()
+	blogger.Info().Command("watching").Message(blogger.FormattedMessage(w.dir)).Log()
 
 	// Do a first build
 	okay := w.b.Build()
-	if okay && !w.buildOnly {
-		// Do a first run.
-		if re := w.r.Run(); re != nil {
-			b_logger.Error().Message(re.Error()).Log()
+	if okay {
+		if !w.buildOnly {
+			// Do a first run.
+			if re := w.r.Run(); re != nil {
+				blogger.Error().Message(re.Error()).Log()
+			}
+		}
+		ce := w.r.RunCustom()
+		if ce != nil {
+			blogger.Error().Message(ce.Error()).Log()
 		}
 	}
 	stopWatch := make(chan error)
