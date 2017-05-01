@@ -1,8 +1,10 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -11,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/rs/xid"
 	jww "github.com/spf13/jwalterweatherman"
 	"github.com/spf13/viper"
 	"github.com/v4run/bob/app"
@@ -40,6 +43,8 @@ const (
 	STATUS Action = "status"
 	// ROOT defines the root path for the server
 	ROOT Action = ""
+	// ATTACH is used to attach to a running job
+	ATTACH Action = "attach"
 )
 
 // S defines the interface for the server
@@ -50,11 +55,12 @@ type S interface {
 type server struct {
 	sync.RWMutex
 	*http.ServeMux
-	upgrader     websocket.Upgrader
-	jobs         map[int]*Job
-	registerChan chan *Job
-	deleteChan   chan int
-	jID          int
+	upgrader      websocket.Upgrader
+	jobs          map[int]*Job
+	registerChan  chan *Job
+	deleteChan    chan int
+	commEventChan chan comm
+	jID           int
 }
 
 // Job defines a watch job
@@ -71,6 +77,14 @@ func newJob(dir, appName string) *Job {
 	}
 }
 
+type comm struct {
+	jID    int
+	id     string
+	op     string
+	reader io.Reader
+	writer io.Writer
+}
+
 // New creates and returns a new instance of server
 func New() S {
 	s := &server{
@@ -79,9 +93,10 @@ func New() S {
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 		},
-		jobs:         make(map[int]*Job),
-		registerChan: make(chan *Job),
-		deleteChan:   make(chan int),
+		jobs:          make(map[int]*Job),
+		registerChan:  make(chan *Job),
+		deleteChan:    make(chan int),
+		commEventChan: make(chan comm),
 	}
 	go s.jobWatcher()
 	return s
@@ -114,6 +129,33 @@ func (s *server) jobWatcher() {
 				s.jobs[id].w.EventChan <- app.STOPWATCHING
 				delete(s.jobs, id)
 				s.Unlock()
+			}
+		case iop := <-s.commEventChan:
+			switch iop.op {
+			case "attach":
+				if _, present := s.jobs[iop.jID]; present {
+					jww.DEBUG.Println("Attaching to job", s.jobs[iop.jID])
+					fmt.Println("Lock start")
+					s.Lock()
+					fmt.Println("Lock success")
+					s.jobs[iop.jID].w.R.SetOut(iop.writer, iop.id)
+					s.jobs[iop.jID].w.R.SetErr(iop.writer, iop.id)
+					fmt.Println("Unlock start")
+					s.Unlock()
+					fmt.Println("Unlock success")
+				}
+			case "detach":
+				if _, present := s.jobs[iop.jID]; present {
+					jww.DEBUG.Println("Detaching from job", s.jobs[iop.jID])
+					fmt.Println("Lock start")
+					s.Lock()
+					fmt.Println("Lock success")
+					s.jobs[iop.jID].w.R.UnsetOut(iop.id)
+					s.jobs[iop.jID].w.R.UnsetErr(iop.id)
+					fmt.Println("Unlock start")
+					s.Unlock()
+					fmt.Println("Unlock success")
+				}
 			}
 		}
 	}
@@ -206,6 +248,42 @@ func (s *server) status(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+func (s *server) attach(w http.ResponseWriter, r *http.Request) {
+	if jID, err := strconv.Atoi(r.FormValue("id")); err == nil {
+		c, err := s.upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			jww.ERROR.Println(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer c.Close()
+		pr, pw := io.Pipe()
+		id := xid.New().String()
+		s.commEventChan <- comm{
+			op:     "attach",
+			id:     id,
+			jID:    jID,
+			writer: pw,
+		}
+
+		for {
+			line, _, err := bufio.NewReader(pr).ReadLine()
+			err = c.WriteMessage(websocket.TextMessage, line)
+			if err != nil {
+				s.commEventChan <- comm{
+					op:  "detach",
+					id:  id,
+					jID: jID,
+				}
+				break
+			}
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+}
+
 func (s *server) AddRoutes() {
 	jww.DEBUG.Println("Starting web server.")
 	s.Handle(ROOT.asPath(), http.FileServer(http.Dir("server/static")))
@@ -214,6 +292,7 @@ func (s *server) AddRoutes() {
 	s.HandleFunc(STOPJOB.asPath(), s.stopJob)
 	s.HandleFunc(LISTJOBS.asPath(), s.listJobs)
 	s.HandleFunc(NEWJOB.asPath(), s.newJob)
+	s.HandleFunc(ATTACH.asPath(), s.attach)
 }
 
 func (s *server) ServeWS() {
