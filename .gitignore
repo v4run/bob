@@ -1,2 +1,4 @@
 bob
 .idea/*
+.vscode/*
+.DS_Store
