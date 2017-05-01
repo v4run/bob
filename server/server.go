@@ -45,6 +45,10 @@ const (
 	ROOT Action = ""
 	// ATTACH is used to attach to a running job
 	ATTACH Action = "attach"
+	// BUILD is used to build a job
+	BUILD Action = "build"
+	// RUN is used to run a job
+	RUN Action = "run"
 )
 
 // S defines the interface for the server
@@ -135,26 +139,30 @@ func (s *server) jobWatcher() {
 			case "attach":
 				if _, present := s.jobs[iop.jID]; present {
 					jww.DEBUG.Println("Attaching to job", s.jobs[iop.jID])
-					fmt.Println("Lock start")
 					s.Lock()
-					fmt.Println("Lock success")
 					s.jobs[iop.jID].w.R.SetOut(iop.writer, iop.id)
 					s.jobs[iop.jID].w.R.SetErr(iop.writer, iop.id)
-					fmt.Println("Unlock start")
 					s.Unlock()
-					fmt.Println("Unlock success")
 				}
 			case "detach":
 				if _, present := s.jobs[iop.jID]; present {
 					jww.DEBUG.Println("Detaching from job", s.jobs[iop.jID])
-					fmt.Println("Lock start")
 					s.Lock()
-					fmt.Println("Lock success")
 					s.jobs[iop.jID].w.R.UnsetOut(iop.id)
 					s.jobs[iop.jID].w.R.UnsetErr(iop.id)
-					fmt.Println("Unlock start")
 					s.Unlock()
-					fmt.Println("Unlock success")
+				}
+			case "build":
+				if j, present := s.jobs[iop.jID]; present {
+					jww.DEBUG.Println("Building the job", j)
+					j.w.B.InitiateBuild()
+				}
+			case "run":
+				if j, present := s.jobs[iop.jID]; present {
+					jww.DEBUG.Println("Running the job", j)
+					if err := j.w.R.Run(); err != nil {
+						jww.ERROR.Println(err)
+					}
 				}
 			}
 		}
@@ -248,6 +256,38 @@ func (s *server) status(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+func (s *server) build(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	if jID, err := strconv.Atoi(r.FormValue("id")); err == nil {
+		s.commEventChan <- comm{
+			op:  "build",
+			jID: jID,
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+}
+
+func (s *server) run(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		return
+	}
+	if jID, err := strconv.Atoi(r.FormValue("id")); err == nil {
+		s.commEventChan <- comm{
+			op:  "run",
+			jID: jID,
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+}
+
 func (s *server) attach(w http.ResponseWriter, r *http.Request) {
 	if jID, err := strconv.Atoi(r.FormValue("id")); err == nil {
 		c, err := s.upgrader.Upgrade(w, r, nil)
@@ -293,6 +333,8 @@ func (s *server) AddRoutes() {
 	s.HandleFunc(LISTJOBS.asPath(), s.listJobs)
 	s.HandleFunc(NEWJOB.asPath(), s.newJob)
 	s.HandleFunc(ATTACH.asPath(), s.attach)
+	s.HandleFunc(BUILD.asPath(), s.build)
+	s.HandleFunc(RUN.asPath(), s.run)
 }
 
 func (s *server) ServeWS() {

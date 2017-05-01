@@ -15,9 +15,12 @@
 package cmd
 
 import (
-	"fmt"
+	"net/http"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/v4run/bob/server"
 )
 
 // buildCmd represents the build command
@@ -26,7 +29,10 @@ var buildCmd = &cobra.Command{
 	Short: "force build the project",
 	Long:  `bob build allows you to manually build (and run) your go project any time`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("build called")
+		_, err := http.PostForm(serverAddr(server.BUILD), url.Values{"id": args})
+		if err != nil {
+			jww.ERROR.Println(err)
+		}
 	},
 }
 

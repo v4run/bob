@@ -15,9 +15,12 @@
 package cmd
 
 import (
-	"fmt"
+	"net/http"
+	"net/url"
 
 	"github.com/spf13/cobra"
+	jww "github.com/spf13/jwalterweatherman"
+	"github.com/v4run/bob/server"
 )
 
 // runCmd represents the run command
@@ -26,7 +29,10 @@ var runCmd = &cobra.Command{
 	Short: "run your project",
 	Long:  `bob run allows you to manually rerun your project any time`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("run called")
+		_, err := http.PostForm(serverAddr(server.RUN), url.Values{"id": args})
+		if err != nil {
+			jww.ERROR.Println(err)
+		}
 	},
 }
 

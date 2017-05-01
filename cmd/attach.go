@@ -52,7 +52,7 @@ var attachCmd = &cobra.Command{
 				jww.ERROR.Println("read:", err)
 				return
 			}
-			fmt.Printf("%s", message)
+			fmt.Printf("%s\n", message)
 		}
 	},
 }
